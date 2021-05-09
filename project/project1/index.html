@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Brandon Do" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../img/favicon.ico">
+    <title>Project 1: Exploratory Data Analysis</title>
+    <meta name="generator" content="Hugo 0.83.1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../../post/">BLOG</a></li>
+        
+        <li><a href="../../projects/">PROJECTS</a></li>
+        
+        <li><a href="../../resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../../project/project1/">Project 1: Exploratory Data Analysis</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         January 1, 0001 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<div id="brandon-do-bmd2482" class="section level2">
+<h2>Brandon Do (bmd2482)</h2>
+</div>
+<div id="data-wrangling-and-data-exploration" class="section level2">
+<h2>Data Wrangling and Data Exploration</h2>
+<P style="page-break-before: always">
+<div style="page-break-after: always;"></div>
+<div id="rubric" class="section level3">
+<h3>Rubric</h3>
+<p>Prerequisite: Finding appropriate data from at least two sources per the instructions above: Failure to do this will result in a 0! You will submit a .Rmd file and a knitted document (html/pdf).</p>
+<div id="introduction-4-pts" class="section level4">
+<h4>0. Introduction (4 pts)</h4>
+<p>Having a good education has always been something my parents have prioritized for me. They both grew up in Vietnam in poor conditions and did not have the resources or opportunities to pursue higher educations like I fortunately have, so I wanted to tie this project with education in someway. The two datasets I have chosen are the education expenditure of the 50 states in the U.S. and the violent crime rates by state because I wanted to see if there was any correlation present between receiving a well-funded education and a state’s crime rate.</p>
+<p>The education dataset was found in the <code>robustbase</code> library with data drawn from co-statisticians Chatterjee and Price. It has 6 variables:</p>
+<ul>
+<li>state</li>
+<li>region</li>
+<li>X1 (number of residents per thousand living in urban areas in 1970)</li>
+<li>X2 (per capita personal income in 1973)</li>
+<li>X3 (number of residents per thousand under 18 years of age in 1974)</li>
+<li>Y (per capita expenditure on public education in a state for 1975)</li>
+</ul>
+<p>As a warning, the crime dataset does contain crime topics that are sensitive/difficult to talk about. The dataset is from the <code>datasets</code> library with data drawn from the World Almanac and Book of Facts 1975. These variables are based on different major crimes committed during 1973 in each state:</p>
+<ul>
+<li>Murder (arrests per 100,000)</li>
+<li>Assault (arrests per 100,000)</li>
+<li>Rape (arrests per 100,000)</li>
+<li>UrbanPop (percent that resided in an urban area)</li>
+</ul>
+<p>X1 from the former dataset will be removed as there is already a measure for the urban population in the crime dataset.</p>
+<p>I anticipate a negative correlation between receiving expenditure on public education and crime rates. I also expect per capita personal income to be negatively correlated with the crime rates, but a positive correlation between urban area density and crime rate. Please note that since the data was not taken during the same year and only in the same time era, the resulting correlations may not truly represent the relationship between education and crime rates.</p>
+</div>
+<div id="tidying-rearranging-widelong-8-pts" class="section level4">
+<h4>1. Tidying: Rearranging Wide/Long (8 pts)</h4>
+<p>First, I ran in the the three libraries that contain the methods and datasets necessary to complete this study. The data sets were already tidied fortunately, so I left the rearranging for Question 4 below. I modified the data sets to remove redundant information and renamed variables and certain data to make the data sets more readable and logical.</p>
+<pre class="r"><code>library(tidyverse)
+library(datasets)
+library(robustbase)
+USArrest &lt;- as.data.frame(USArrests)
+edu &lt;- as.data.frame(education)
+
+
+glimpse(USArrests)</code></pre>
+<pre><code>## Rows: 50
+## Columns: 4
+## $ Murder   &lt;dbl&gt; 13.2, 10.0, 8.1, 8.8, 9.0, 7.9, 3.3, 5.9, 15.4, 17.4, 5.3, 2…
+## $ Assault  &lt;int&gt; 236, 263, 294, 190, 276, 204, 110, 238, 335, 211, 46, 120, 2…
+## $ UrbanPop &lt;int&gt; 58, 48, 80, 50, 91, 78, 77, 72, 80, 60, 83, 54, 83, 65, 57, …
+## $ Rape     &lt;dbl&gt; 21.2, 44.5, 31.0, 19.5, 40.6, 38.7, 11.1, 15.8, 31.9, 25.8, …</code></pre>
+<pre class="r"><code>glimpse(education)</code></pre>
+<pre><code>## Rows: 50
+## Columns: 6
+## $ State  &lt;fct&gt; ME, NH, VT, MA, RI, CT, NY, NJ, PA, OH, IN, IL, MI, WI, MN, IA…
+## $ Region &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,…
+## $ X1     &lt;int&gt; 508, 564, 322, 846, 871, 774, 856, 889, 715, 753, 649, 830, 73…
+## $ X2     &lt;int&gt; 3944, 4578, 4011, 5233, 4780, 5889, 5663, 5759, 4894, 5012, 49…
+## $ X3     &lt;int&gt; 325, 323, 328, 305, 303, 307, 301, 310, 300, 324, 329, 320, 33…
+## $ Y      &lt;int&gt; 235, 231, 270, 261, 300, 317, 387, 285, 300, 221, 264, 308, 37…</code></pre>
+<pre class="r"><code># Before anything else, I am removing the X1 variable as it
+# is redundant to the study
+edu &lt;- subset(edu, select = -c(X1))
+
+# Renaming variables within the `education` and `USArrest`
+# datasets to be more logical and to match syntax between the
+# two
+edu &lt;- edu %&gt;% rename(region = Region, per.capita.income = X2, 
+    under.eighteen = X3, per.capita.edu = Y)
+
+USArrest &lt;- USArrest %&gt;% rename(murder = Murder, assault = Assault, 
+    urban.pop = UrbanPop, r.pe = Rape)
+
+# Reconfigured the `Region` variable values to be characters
+# that are more logical
+edu$region &lt;- as.character(edu$region)
+edu[edu$region == &quot;1&quot;, &quot;region&quot;] &lt;- &quot;Northeastern&quot;
+edu[edu$region == &quot;2&quot;, &quot;region&quot;] &lt;- &quot;North Central&quot;
+edu[edu$region == &quot;3&quot;, &quot;region&quot;] &lt;- &quot;Southern&quot;
+edu[edu$region == &quot;4&quot;, &quot;region&quot;] &lt;- &quot;Western&quot;
+
+head(edu)</code></pre>
+<pre><code>##   State       region per.capita.income under.eighteen per.capita.edu
+## 1    ME Northeastern              3944            325            235
+## 2    NH Northeastern              4578            323            231
+## 3    VT Northeastern              4011            328            270
+## 4    MA Northeastern              5233            305            261
+## 5    RI Northeastern              4780            303            300
+## 6    CT Northeastern              5889            307            317</code></pre>
+<pre class="r"><code>head(USArrest)</code></pre>
+<pre><code>##            murder assault urban.pop r.pe
+## Alabama      13.2     236        58 21.2
+## Alaska       10.0     263        48 44.5
+## Arizona       8.1     294        80 31.0
+## Arkansas      8.8     190        50 19.5
+## California    9.0     276        91 40.6
+## Colorado      7.9     204        78 38.7</code></pre>
+</div>
+<div id="joiningmerging-8-pts" class="section level4">
+<h4>2. Joining/Merging (8 pts)</h4>
+<p>The join method (whether <code>left_join</code>, <code>right_join</code>, <code>full_join</code>, etc.) did not matter for these two datasets as they were both at 50 observations with completely matching common ID data points. I performed a left_join arbitrarily, but made sure to have the <code>State</code> variable of <code>edu</code> match with the <code>Abbreviation</code> variable of <code>USArrest</code> for the common ID.</p>
+<p>There were no cases dropped. However, there was a slight bump in converting the rownames of <code>USArrest</code> into a variable and there was also two typos in the <code>State variable of</code>edu` where Nebraska and Kentucky’s abbreviations were misspelled.</p>
+<pre class="r"><code># Ran the `tibble` library to have access to the
+# rownames_to_column method as the State names in `USArrest`
+# was not a variable
+library(tibble)
+
+# State names between `edu` and `USArrest` were different so
+# I brought in this variable to provide a common ID
+key &lt;- read_csv(&quot;https://raw.githubusercontent.com/jasonong/List-of-US-States/master/states.csv&quot;)  #key to create a common state ID between the two datasets 
+USArrest &lt;- rownames_to_column(USArrest, var = &quot;State&quot;)
+USArrest &lt;- USArrest %&gt;% left_join(key, by = c(State = &quot;State&quot;))
+
+# Original `State` variable was not characters for `edu`
+# dataset so have to convert to characters
+edu$State &lt;- as.character(edu$State)
+edu[edu$State == &quot;NB&quot;, &quot;State&quot;] &lt;- &quot;NE&quot;
+edu[30, &quot;State&quot;] &lt;- &quot;KY&quot;
+
+edu_Arrest &lt;- edu %&gt;% left_join(USArrest, by = c(State = &quot;Abbreviation&quot;), 
+    suffix = c(&quot;&quot;, &quot;.full&quot;))
+
+head(edu_Arrest)</code></pre>
+<pre><code>##   State       region per.capita.income under.eighteen per.capita.edu
+## 1    ME Northeastern              3944            325            235
+## 2    NH Northeastern              4578            323            231
+## 3    VT Northeastern              4011            328            270
+## 4    MA Northeastern              5233            305            261
+## 5    RI Northeastern              4780            303            300
+## 6    CT Northeastern              5889            307            317
+##      State.full murder assault urban.pop r.pe
+## 1         Maine    2.1      83        51  7.8
+## 2 New Hampshire    2.1      57        56  9.5
+## 3       Vermont    2.2      48        32 11.2
+## 4 Massachusetts    4.4     149        85 16.3
+## 5  Rhode Island    3.4     174        87  8.3
+## 6   Connecticut    3.3     110        77 11.1</code></pre>
+</div>
+<div id="wrangling-36-pts" class="section level4">
+<h4>3. Wrangling (36 pts)</h4>
+<p>First, three variables were created using <code>mutate()</code>. <code>percent.income.to.edu</code> is the percentage of per capita income that is invested towards public education, <code>cum.crime</code> is the summation of the three crime variables to provide the amount of general arrests made (per 100,000 people), and <code>above.med.crime</code> is a categorical variable of if the amount of crime for the observation is above (<code>TRUE</code>) or below (<code>FALSE</code>) the median amount of crime.</p>
+<p>Using the <code>arrange()</code> method, Florida was determined to be the state with the highest crime. Interestingly, Florida had a <code>per.capita.edu</code> of $230 which is near the $246 of North Dakota, the state with the least cumulative crime at 53.1 arrests per 100,000. The summary statistics were calculated for the observations with a per capita income invested into education below the average. The overall and group-by(above.med.crime) summary statistics for the numeric variables was also calculated. The education and financial variables were fairly similar between the state above and below the median crime amount, but obviously the crime amounts were substantially different with those below averaging 120.612000 arrests per 100,000 and above 278.948000 arrests per 100,000.</p>
+<pre class="r"><code># Created three variables including one additional
+# categorical variable which help us quantify and interpret
+# the data
+edu_Arrest &lt;- edu_Arrest %&gt;% mutate(percent.income.to.edu = per.capita.edu/per.capita.income * 
+    100, cum.crime = murder + assault + r.pe, above.med.crime = cum.crime &gt; 
+    median(cum.crime))
+
+# Selected State, per_capita_edu, and cum_crime as these
+# three variables are of direct interest to the study.
+# Arranged the data from greatest to least by cum_crime which
+# provides an easy to read relationship between the three
+# variables
+edu_Arrest %&gt;% select(State, per.capita.edu, cum.crime) %&gt;% arrange(desc(cum.crime))</code></pre>
+<pre><code>##    State per.capita.edu cum.crime
+## 1     FL            243     382.3
+## 2     NC            245     366.1
+## 3     MD            330     339.1
+## 4     AZ            332     333.1
+## 5     NM            317     328.5
+## 6     CA            332     325.6
+## 7     AK            311     317.5
+## 8     SC            233     315.9
+## 9     NV            291     310.2
+## 10    MI            379     302.2
+## 11    MS            215     292.2
+## 12    NY            387     291.2
+## 13    LA            244     286.6
+## 14    IL            308     283.4
+## 15    AL            208     270.4
+## 16    DE            344     259.7
+## 17    GA            250     254.2
+## 18    CO            304     250.6
+## 19    TX            269     239.2
+## 20    TN            212     228.1
+## 21    AR            221     218.3
+## 22    MO            231     215.2
+## 23    OR            316     193.2
+## 24    RI            300     185.7
+## 25    NJ            285     185.2
+## 26    VA            261     185.2
+## 27    WY            323     183.4
+## 28    OK            234     177.6
+## 29    WA            312     175.2
+## 30    MA            261     169.7
+## 31    OH            221     148.7
+## 32    UT            315     146.1
+## 33    IN            264     141.2
+##  [ reached &#39;max&#39; / getOption(&quot;max.print&quot;) -- omitted 17 rows ]</code></pre>
+<pre class="r"><code># Filtered to see what the means are for the data points that
+# were below the percent_income_to_edu median (percentage of
+# per capita income that went towards education)
+edu_Arrest %&gt;% filter(percent.income.to.edu &lt;= median(percent.income.to.edu)) %&gt;% 
+    summarize_if(is.numeric, mean)</code></pre>
+<pre><code>##   per.capita.income under.eighteen per.capita.edu murder assault urban.pop
+## 1              4658         319.44          249.4   7.92  160.64     62.48
+##     r.pe percent.income.to.edu cum.crime
+## 1 20.168              5.380198   188.728</code></pre>
+<pre class="r"><code># Summary statistics without grouping
+summary_edu_Arrest &lt;- edu_Arrest %&gt;% summarize_if(is.numeric, 
+    list(mean = mean, sd = sd, var = var, min = min, max = max, 
+        ndistinct = n_distinct))
+
+# Tidying
+summary_edu_Arrest &lt;- summary_edu_Arrest %&gt;% pivot_longer(contains(&quot;_&quot;)) %&gt;% 
+    separate(name, into = c(&quot;datatype&quot;, &quot;stat&quot;), sep = &quot;_&quot;) %&gt;% 
+    pivot_wider(names_from = &quot;stat&quot;, values_from = &quot;value&quot;)
+
+head(summary_edu_Arrest)</code></pre>
+<pre><code>## # A tibble: 6 x 7
+##   datatype             mean     sd      var    min    max ndistinct
+##   &lt;chr&gt;               &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;
+## 1 per.capita.income 4675.   645.   415388.  3448   5889          50
+## 2 under.eighteen     326.    19.4     377.   287    386          36
+## 3 per.capita.edu     285.    61.3    3763.   208    546          43
+## 4 murder               7.79   4.36     19.0    0.8   17.4        43
+## 5 assault            171.    83.3    6945.    45    337          45
+## 6 urban.pop           65.5   14.5     210.    32     91          36</code></pre>
+<pre class="r"><code># Summary statistics with grouping
+groupstat_edu_Arrest &lt;- edu_Arrest %&gt;% group_by(above.med.crime) %&gt;% 
+    summarize_if(is.numeric, list(mean = mean, sd = sd, var = var, 
+        min = min, max = max, ndistinct = n_distinct))
+
+# Tidying
+groupstat_edu_Arrest &lt;- groupstat_edu_Arrest %&gt;% pivot_longer(contains(&quot;_&quot;)) %&gt;% 
+    separate(name, into = c(&quot;datatype&quot;, &quot;stat&quot;), sep = &quot;_&quot;) %&gt;% 
+    pivot_wider(names_from = &quot;stat&quot;, values_from = &quot;value&quot;)
+
+head(groupstat_edu_Arrest)</code></pre>
+<pre><code>## # A tibble: 6 x 8
+##   above.med.crime datatype          mean     sd      var    min    max ndistinct
+##   &lt;lgl&gt;           &lt;chr&gt;            &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;
+## 1 FALSE           per.capita.inc… 4.67e3 520.     2.71e5 3828   5889          25
+## 2 FALSE           under.eighteen  3.26e2  20.3    4.10e2  300    386          21
+## 3 FALSE           per.capita.edu  2.85e2  70.4    4.96e3  214    546          23
+## 4 FALSE           murder          4.63e0   2.30   5.31e0    0.8    9.7        21
+## 5 FALSE           assault         1.01e2  36.5    1.34e3   45    161          22
+## 6 FALSE           urban.pop       6.18e1  13.7    1.86e2   32     85          23</code></pre>
+</div>
+<div id="visualizing-30-pts" class="section level4">
+<h4>4. Visualizing (30 pts)</h4>
+<ul>
+<li><p>Create a correlation heatmap of your numeric variables the way we did in class</p></li>
+<li><p>Create two effective, polished plots with ggplot</p>
+<ul>
+<li>Each plot should map 3+ variables to aesthetics</li>
+<li>Each plot should have a title and clean labeling for all mappings</li>
+<li>Change at least one default theme element and color for at least one mapping per plot</li>
+<li>For at least one plot, add more tick marks (x, y, or both) than are given by default</li>
+<li>For at least one plot, use the stat=“summary” function</li>
+<li>Supporting paragraph or two (for each plot) describing the relationships/trends that are apparent</li>
+</ul></li>
+</ul>
+<p>The correlation heat map demonstrates that there is a relatively strong correlation between the different types of crimes (i.e. <code>r.pe</code>, <code>murder</code>, <code>assault</code>) with <code>assault</code> correlating with <code>murder</code> at 0.8 and with <code>r.pe</code> at 0.67, for example. However, the correlation between the two joined datasets is fairly small with <code>per.capita.edu</code> having a correlation of -0.01, 0.22, and -0.18 with <code>assault</code>, <code>r.pe</code> and <code>murder</code>, respectively.</p>
+<p>The scatterplot plotted <code>cum.crime</code> against <code>per.capita.edu</code> based on U.S. region. Although, as a whole there does not appear to be a strong correlation between per capita invested into education and crime amounts, the regions do appear to be somewhat clustered. For example, the <code>Southern</code> region data points appear to be more localized to the top left area meaning that there per capita spending on education is relatively low compared to their crime arrests amounts. Originally, it was hypothesized that education investment and crime amounts will be negatively correlated with one another, but the data presented here does not seem to provide enough evidence to make that conclusion. Besides the one outlier located on the bottom right for the <code>Western</code> region, the data seems to be generally blobbed in a non-correlated manner.</p>
+<p>The barplot plots <code>per.capita.edu</code> against <code>region</code> with comparison between observations above and below the median crime rate. Generally, the observations above the median crime rate spend more in per capita investment into education compared to their below-median counterparts for their respective regions. Again, this is an interesting correlation given the original hypothesis that education investment will be worse for states with higher crime numbers - albeit this correlation is not conclusive as the standard errors shown demonstrate that there is a substantial variability to the presented data and this is also not a direct comparison between crime and education investment. The <code>Western</code> region is different than the other regions as the <code>Western</code> states below the median crime rate generally seem to invest more into their education compared to the <code>Western</code> above-median states. From this data, no conclusive arguments can be made about a correlation between these three variables as the standard errors are too high and close to one another.</p>
+<pre class="r"><code># Heatmap
+edu_Arrest %&gt;% select_if(is.numeric) %&gt;% cor %&gt;% as.data.frame %&gt;% 
+    rownames_to_column %&gt;% pivot_longer(-1) %&gt;% ggplot(aes(rowname, 
+    name, fill = value)) + geom_tile() + scale_fill_gradient2(low = &quot;red&quot;, 
+    mid = &quot;white&quot;, high = &quot;blue&quot;) + ggtitle(&quot;Correlation Heatmap of `edu_Arrest` Numeric Variables&quot;) + 
+    geom_text(aes(label = round(value, 2))) + theme(axis.text.x = element_text(angle = 45, 
+    hjust = 1)) + xlab(&quot;&quot;) + ylab(&quot;&quot;)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Scatterplot
+ggplot(edu_Arrest, aes(per.capita.edu, cum.crime, color = region)) + 
+    geom_point() + scale_y_continuous(breaks = seq(30, 400, 50)) + 
+    scale_x_continuous(breaks = seq(175, 550, 50)) + ggtitle(&quot;Crime Numbers and Per Capita Expenditure \non Education by Region&quot;) + 
+    labs(y = &quot;Cumulative Crime Arrests (per 100,000)&quot;, x = &quot;Per Capita Spent on Education ($)&quot;) + 
+    theme(legend.title = element_text(colour = &quot;lightblue&quot;, face = &quot;bold.italic&quot;, 
+        family = &quot;Helvetica&quot;), plot.title = element_text(colour = &quot;blue&quot;, 
+        family = &quot;Helvetica&quot;), legend.text = element_text(face = &quot;italic&quot;, 
+        colour = &quot;lightblue&quot;, family = &quot;Helvetica&quot;), axis.title = element_text(family = &quot;Helvetica&quot;, 
+        colour = &quot;lightblue&quot;), axis.text = element_text(family = &quot;Helvetica&quot;, 
+        colour = &quot;lightblue&quot;))</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-5-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Barplot
+ggplot(edu_Arrest, aes(x = region, y = per.capita.edu, fill = above.med.crime)) + 
+    geom_bar(stat = &quot;summary&quot;, fun = mean, position = &quot;dodge&quot;) + 
+    geom_errorbar(stat = &quot;summary&quot;, fun.data = mean_se, position = &quot;dodge&quot;) + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        plot.title = element_text(colour = &quot;blue&quot;, family = &quot;Helvetica&quot;), 
+        legend.title = element_text(colour = &quot;lightblue&quot;, face = &quot;bold.italic&quot;, 
+            family = &quot;Helvetica&quot;), legend.text = element_text(face = &quot;italic&quot;, 
+            colour = &quot;lightblue&quot;, family = &quot;Helvetica&quot;), axis.title = element_text(family = &quot;Helvetica&quot;, 
+            colour = &quot;lightblue&quot;), axis.text = element_text(family = &quot;Helvetica&quot;, 
+            colour = &quot;lightblue&quot;)) + labs(fill = &quot;Above Median Crime Rate? (TRUE=YES, FALSE=NO)&quot;, 
+    title = &quot;Per Capita Expenditure on Education Based on \nRegionality and Cumulative Crime Arrests Median&quot;, 
+    y = &quot;Per Capita Spent on Education ($)&quot;, x = &quot;U.S. Region&quot;)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-5-3.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="dimensionality-reduction-20-pts" class="section level4">
+<h4>5. Dimensionality Reduction (20 pts)</h4>
+<p>PAM clustering was used for the clustering algorithm with two medoids identified. A k-value of 2 was determined to have the highest silhouette width. The resulting cluster visualization seems to show that there is not a strong clustering association based on the four variables of <code>per.capita.income</code>, <code>per.capita.edu</code>, <code>urban.pop</code>, and <code>cum.crime</code>. The distances between the clusters is not well defined with the clusters meshing somewhat with each other. This means that there is not strong regularity within the data.</p>
+<pre class="r"><code>library(cluster)
+
+# computed silhouette widths at different k-values using a
+# for-loop
+pam_dats &lt;- edu_Arrest %&gt;% select(per.capita.income, per.capita.edu, 
+    urban.pop, cum.crime) %&gt;% scale()
+sil_width &lt;- vector()
+for (i in 2:10) {
+    pam_fit &lt;- pam(pam_dats, k = i)
+    sil_width[i] &lt;- pam_fit$silinfo$avg.width
+}
+ggplot() + geom_line(aes(x = 1:10, y = sil_width)) + scale_x_continuous(name = &quot;k&quot;, 
+    breaks = 1:10)  #determined the k-value of 2 works best as it had the highest silhouette width</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># PAM cluster analysis
+pam_edu_Arrest &lt;- edu_Arrest %&gt;% select(per.capita.income, per.capita.edu, 
+    urban.pop, cum.crime) %&gt;% scale() %&gt;% pam(2)
+pam_edu_Arrest</code></pre>
+<pre><code>## Medoids:
+##      ID per.capita.income per.capita.edu  urban.pop  cum.crime
+## [1,] 39        -0.5463407     -0.2706222 -0.7972496 -0.6744993
+## [2,] 41         0.5754483      0.3162693  0.8608085  0.5442689
+## Clustering vector:
+##  [1] 1 1 1 2 2 2 2 2 2 2 1 2 2 1 1 1 2 1 1 1 2 2 2 1 1 1 1 1 2 1 1 1 1 1 1 1 2 1
+## [39] 1 1 2 2 2 2 2 2 2 2 2 2
+## Objective function:
+##    build     swap 
+## 1.548366 1.492043 
+## 
+## Available components:
+##  [1] &quot;medoids&quot;    &quot;id.med&quot;     &quot;clustering&quot; &quot;objective&quot;  &quot;isolation&quot; 
+##  [6] &quot;clusinfo&quot;   &quot;silinfo&quot;    &quot;diss&quot;       &quot;call&quot;       &quot;data&quot;</code></pre>
+<pre class="r"><code># Visualization of clusters
+finals &lt;- edu_Arrest %&gt;% select(per.capita.income, per.capita.edu, 
+    urban.pop, cum.crime) %&gt;% mutate(cluster = pam_edu_Arrest$clustering)
+ggplot(finals, aes(x = per.capita.edu, y = cum.crime, color = cluster)) + 
+    geom_point()</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-6-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>## paste this chunk into the ```{r setup} chunk at the top of
+## your project 1 .Rmd file
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.align = &quot;center&quot;, 
+    warning = F, message = F, tidy = TRUE, tidy.opts = list(width.cutoff = 60), 
+    R.options = list(max.print = 100))</code></pre>
+<p>…</p>
+</div>
+</div>
+</div>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../../js/docs.min.js"></script>
+<script src="../../js/main.js"></script>
+
+<script src="../../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

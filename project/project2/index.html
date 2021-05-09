@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Brandon Do" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../img/favicon.ico">
+    <title>Project 2: Modeling, Testing, and Predicting</title>
+    <meta name="generator" content="Hugo 0.83.1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../../post/">BLOG</a></li>
+        
+        <li><a href="../../projects/">PROJECTS</a></li>
+        
+        <li><a href="../../resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../../project/project2/">Project 2: Modeling, Testing, and Predicting</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         January 1, 0001 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<div id="modeling" class="section level1">
+<h1>Modeling</h1>
+<div id="introduction" class="section level3">
+<h3>Introduction</h3>
+<p><strong>0. (5 pts)</strong>
+I decided to expand upon what I worked on in Project 1 - which measured the relationship between education and crime - by focusing on a dataset that also relates to crime rates within the United States. For this project, I will be analyzing the <code>Guns</code> dataset from the <code>AER</code> library which looks at various variables related to crime rate, such as violent crime rate (<code>violent</code>), murder rate (<code>murder</code>), robbery rate (<code>robbery</code>), and incarceration rate (<code>prisoners</code>). The purpose of the <code>Guns</code> dataset is to provide data that can help determine if there is a relationship between having a concealed carry law (<code>law</code>) and crime rates. There are 1,173 observations in total with 13 variables, although the variables mentioned previously are the main variables under investigation.</p>
+<pre class="r"><code>#load all needed libraries beforehand
+library(tidyverse)
+library(dplyr)
+library(mvtnorm) 
+library(ggExtra)
+library(rstatix)
+library(gridExtra)
+library(AER)
+library(lmtest)
+library(sandwich)
+library(plotROC)
+library(glmnet)
+
+
+data(Guns)
+head(Guns)</code></pre>
+<pre><code>## year violent murder robbery prisoners afam cauc male
+population income density
+## 1 1977 414.4 14.2 96.8 83 8.384873 55.12291 18.17441
+3.780403 9563.148 0.0745524
+## 2 1978 419.1 13.3 99.1 94 8.352101 55.14367 17.99408
+3.831838 9932.000 0.0755667
+## 3 1979 413.3 13.2 109.5 144 8.329575 55.13586 17.83934
+3.866248 9877.028 0.0762453
+## 4 1980 448.5 13.2 132.1 141 8.408386 54.91259 17.73420
+3.900368 9541.428 0.0768288
+## 5 1981 470.5 11.9 126.5 149 8.483435 54.92513 17.67372
+3.918531 9548.351 0.0771866
+## 6 1982 447.7 10.6 112.0 183 8.514000 54.89621 17.51052
+3.925229 9478.919 0.0773185
+## state law
+## 1 Alabama no
+## 2 Alabama no
+## 3 Alabama no
+## 4 Alabama no
+## 5 Alabama no
+## 6 Alabama no</code></pre>
+<pre class="r"><code>nrow(Guns) #rows of observations within the dataset</code></pre>
+<pre><code>## [1] 1173</code></pre>
+</div>
+<div id="manovaanova-testing" class="section level3">
+<h3>MANOVA/ANOVA Testing</h3>
+<p><strong>1. (15 pts)</strong></p>
+<pre class="r"><code>#first, check MANOVA assumptions
+group &lt;- Guns$law
+DVs &lt;- Guns %&gt;% select(violent, murder, robbery, prisoners)
+
+#testing for multivariate normality for each group
+sapply(split(DVs,group), mshapiro_test) #normality assumption was not met </code></pre>
+<pre><code>##           no           yes         
+## statistic 0.7579409    0.8658216   
+## p.value   3.903153e-34 4.791584e-15</code></pre>
+<pre class="r"><code>#testing homogeneity of covariances 
+box_m(DVs, group) #covariance assumption was not met </code></pre>
+<pre><code>## # A tibble: 1 x 4
+## statistic p.value parameter method
+## &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;
+## 1 648. 1.02e-132 10 Box&#39;s M-test for Homogeneity of
+Covariance Matrices</code></pre>
+<pre class="r"><code>#MANOVA test
+mano &lt;- manova(cbind(violent, murder, robbery, prisoners)~law, data=Guns)
+summary(mano)</code></pre>
+<pre><code>## Df Pillai approx F num Df den Df Pr(&gt;F)
+## law 1 0.1249 41.677 4 1168 &lt; 2.2e-16 ***
+## Residuals 1171
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#univariate ANOVA tests 
+summary.aov(mano)</code></pre>
+<pre><code>## Response violent :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## law 1 5605560 5605560 52.364 8.319e-13 ***
+## Residuals 1171 125355176 107050
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response murder :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## law 1 2135 2134.76 38.944 6.086e-10 ***
+## Residuals 1171 64190 54.82
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response robbery :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## law 1 1538244 1538244 55.363 1.934e-13 ***
+## Residuals 1171 32536070 27785
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response prisoners :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## law 1 67344 67344 2.1064 0.147
+## Residuals 1171 37437770 31971</code></pre>
+<pre class="r"><code>#pairwise t.tests
+pairwise.t.test(Guns$violent, Guns$law, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  Guns$violent and Guns$law 
+## 
+##     no     
+## yes 8.3e-13
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(Guns$murder, Guns$law, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  Guns$murder and Guns$law 
+## 
+##     no     
+## yes 6.1e-10
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(Guns$robbery, Guns$law, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  Guns$robbery and Guns$law 
+## 
+##     no     
+## yes 1.9e-13
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(Guns$prisoners, Guns$law, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  Guns$prisoners and Guns$law 
+## 
+##     no  
+## yes 0.15
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>#probability of at least one type I error 
+1-0.95^9</code></pre>
+<pre><code>## [1] 0.3697506</code></pre>
+<pre class="r"><code>#Bonferroni corrections 
+0.05/9</code></pre>
+<pre><code>## [1] 0.005555556</code></pre>
+<p>The probability of at least one type I error is 0.370. When adjusted using Bonferroni corrections, the modified significance level is 0.0056 which will be used as the significance level that all tests conducted will be compared to. Prior to the MANOVA test being conducted, the MANOVA assumptions were tested and were not met. Regardless, a MANOVA test was conducted. For the MANOVA test, since the p-value is less than 0.0056, this means that the null hypothesis is rejected and there is at least one difference in mean for <code>law</code> for at least one DV. For the ANOVA tests, <code>violent</code>, <code>murder</code> and <code>robbery</code> all had a difference in mean between observations that had concealed carry laws and those that did not. The pairwise t-tests confirmed this as <code>violent</code>, <code>murder</code> and <code>robbery</code> each compared with <code>law</code> all had p-values less than 0.0056. There was 1 MANOVA, 4 ANOVA, and 4 t-tests conducted which adds to 9 tests in total.</p>
+</div>
+<div id="randomization-testing" class="section level3">
+<h3>Randomization Testing</h3>
+<p><strong>2. (10 pts)</strong></p>
+<pre class="r"><code>#Randomization test using mean difference of violent crime rates between observations with and without concealed carry laws  
+Guns%&gt;%group_by(law)%&gt;%
+  summarize(means=mean(violent))%&gt;%summarize(`mean_diff`=diff(means)) #true mean difference </code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   mean_diff
+##       &lt;dbl&gt;
+## 1     -161.</code></pre>
+<pre class="r"><code>#simulating permutations for randomization test 
+rand_dist&lt;-vector()
+for(i in 1:5000){
+new&lt;-data.frame(violent=sample(Guns$violent),law=Guns$law)
+rand_dist[i]&lt;-mean(new[new$law==&quot;yes&quot;,]$violent)-
+mean(new[new$law==&quot;no&quot;,]$violent)}
+
+
+{hist(rand_dist,main=&quot;&quot;,ylab=&quot;&quot;); abline(v = c(-161.1868, 161.1868),col=&quot;red&quot;)} #cannot see the absolute lines since there are no observations that far out </code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-3-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#p-value for mean difference
+mean(rand_dist &lt; -161.1868 | rand_dist &gt; 161.1868) #p-value is essentially zero</code></pre>
+<pre><code>## [1] 0</code></pre>
+<p>The null hypothesis is that the mean of violent crime rate is the same between observations without and with concealed carry laws. The alternative hypothesis is that the mean of violent crime rate is not the same between observations without and with concealed carry laws. A randomization test with mean differences was performed to assess these hypotheses. Based on the domain of the histogram and how the p-value is less than 0.05, this suggests that the null hypothesis is rejected.</p>
+</div>
+<div id="linear-regression-model-and-robust-ses" class="section level3">
+<h3>Linear Regression Model and Robust SEs</h3>
+<p><strong>3. (40 pts)</strong></p>
+<pre class="r"><code>#mean-centering of numeric variable
+Guns$robbery_c&lt;-Guns$robbery-mean(Guns$robbery)
+
+#linear regression model predicting incarceration rate `prisoners` from robbery rate and concealed gun law status 
+fit&lt;-lm(prisoners ~ robbery_c * law, data=Guns)
+fit</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = prisoners ~ robbery_c * law, data = Guns)
+##
+## Coefficients:
+## (Intercept) robbery_c lawyes robbery_c:lawyes
+## 209.9137 0.6031 96.7130 0.4399</code></pre>
+<pre class="r"><code>#ggplot() of regression 
+ggplot(Guns, aes(robbery_c, prisoners, color = law)) + geom_smooth(method = &quot;lm&quot;, se = F, fullrange = T, aes(color = law)) + 
+  geom_point()+geom_vline(xintercept=0,lty=2)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#R-squared/proportion of variation in outcome explained by model
+summary(fit)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = prisoners ~ robbery_c * law, data = Guns)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -672.49 -81.80 -23.15 68.01 1412.09
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 209.91370 4.83963 43.374 &lt; 2e-16 ***
+## robbery_c 0.60313 0.02602 23.180 &lt; 2e-16 ***
+## lawyes 96.71300 11.57079 8.358 &lt; 2e-16 ***
+## robbery_c:lawyes 0.43990 0.10034 4.384 1.27e-05 ***
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 143.3 on 1169 degrees of
+freedom
+## Multiple R-squared: 0.3596, Adjusted R-squared: 0.358
+## F-statistic: 218.8 on 3 and 1169 DF, p-value: &lt; 2.2e-16</code></pre>
+<pre class="r"><code>#checking assumptions 
+bptest(fit) #H0 = homoskedastic </code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit
+## BP = 229.6, df = 3, p-value &lt; 2.2e-16</code></pre>
+<pre class="r"><code>resids&lt;-fit$residuals
+shapiro.test(resids) #H0 = true distribution is normal</code></pre>
+<pre><code>## 
+##  Shapiro-Wilk normality test
+## 
+## data:  resids
+## W = 0.86205, p-value &lt; 2.2e-16</code></pre>
+<pre class="r"><code>#robust standard errors comparison
+summary(fit)$coef[,1:2] #uncorrected standard errors</code></pre>
+<pre><code>##                     Estimate  Std. Error
+## (Intercept)      209.9137042  4.83962597
+## robbery_c          0.6031308  0.02601918
+## lawyes            96.7129959 11.57079189
+## robbery_c:lawyes   0.4399017  0.10033908</code></pre>
+<pre class="r"><code>coeftest(fit, vcov = vcovHC(fit))[,1:2] #corrected robust standard errors </code></pre>
+<pre><code>##                     Estimate  Std. Error
+## (Intercept)      209.9137042  4.09673416
+## robbery_c          0.6031308  0.08682214
+## lawyes            96.7129959 12.53768778
+## robbery_c:lawyes   0.4399017  0.13568650</code></pre>
+<p>Assuming no concealed carry <code>law</code> is enforced, there is a 0.61 increase in incarceration <code>prisoner</code> rate per 100,000 residents for every 1-unit increase in robbery rate on average. For observations of average robbery rate, there is a 96.7130 increase in incarceration <code>prisoner</code> rate per 100,000 residents for observations with concealed carry <code>law</code> than those without. The slope for <code>robbery</code> rate on incarceration <code>prisoner</code> rate is 0.4399 higher for observations with concealed carry <code>law</code> compared to observations without concealed carry <code>law</code>.</p>
+<p>The proportion of variation in <code>prisoner</code> explained by the model is 0.3596 or 0.358 with an adjusted R squared. Assumptions of linearity, normality and homoskedasticity were not met according to the hypothesis test conducted. Since the assumption of homoskedasticity was not met, the standard errors should be made robust to correct for violations of homoskedasticity. The robust SEs are slightly larger than the uncorrected standard errors for all three coefficients.</p>
+</div>
+<div id="bootstrapping" class="section level3">
+<h3>Bootstrapping</h3>
+<p><strong>4. (5 pts)</strong></p>
+<pre class="r"><code>fit&lt;-lm(prisoners ~ robbery_c * law, data=Guns) 
+
+#bootstrap residuals 
+resids&lt;-fit$residuals 
+fitted&lt;-fit$fitted.values 
+
+#resample residuals with replacement
+resid_resamp&lt;-replicate(5000,{
+new_resids&lt;-sample(resids,replace=TRUE) 
+Guns$new_y&lt;-fitted+new_resids 
+fit&lt;-lm(new_y~robbery_c*law,data=Guns) 
+coef(fit) 
+})
+
+#estimated bootstrapped standard errors 
+resid_resamp%&gt;%t%&gt;%as.data.frame%&gt;%summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)  robbery_c   lawyes robbery_c:lawyes
+## 1    4.859051 0.02633208 11.48091        0.1007206</code></pre>
+<p>The difference between the original, robust and bootstrapped SEs is fairly small and within decimal range of one another.</p>
+</div>
+<div id="logistic-regression-model" class="section level3">
+<h3>Logistic Regression Model</h3>
+<p><strong>5. (30 pts)</strong></p>
+<pre class="r"><code>#create binary variable from `law`
+Guns_data &lt;- Guns%&gt;%mutate(y=ifelse(law==&quot;yes&quot;,1,0))
+
+#logistic regression
+fit2&lt;-glm(y~violent+murder+robbery, data=Guns_data, family=&quot;binomial&quot;)
+coeftest(fit2)</code></pre>
+<pre><code>##
+## z test of coefficients:
+##
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) -0.09729476 0.15769946 -0.6170 0.5372590
+## violent 0.00162189 0.00064538 2.5131 0.0119681 *
+## murder -0.11270837 0.03015333 -3.7378 0.0001856 ***
+## robbery -0.00820338 0.00166643 -4.9227 8.535e-07 ***
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#odds scaled coefficients
+coef(fit2)%&gt;%exp%&gt;%round(5)%&gt;%data.frame</code></pre>
+<pre><code>##                   .
+## (Intercept) 0.90729
+## violent     1.00162
+## murder      0.89341
+## robbery     0.99183</code></pre>
+<pre class="r"><code>#confusion matrix for the logistic regression
+probs&lt;-predict(fit2,type=&quot;response&quot;)
+table(predict=as.numeric(probs&gt;.5),truth=Guns_data$y)%&gt;%addmargins</code></pre>
+<pre><code>##        truth
+## predict    0    1  Sum
+##     0    887  283 1170
+##     1      1    2    3
+##     Sum  888  285 1173</code></pre>
+<pre class="r"><code>(887+2)/1173 #accuracy</code></pre>
+<pre><code>## [1] 0.7578858</code></pre>
+<pre class="r"><code>2/285 #TPR</code></pre>
+<pre><code>## [1] 0.007017544</code></pre>
+<pre class="r"><code>887/888 #TNR</code></pre>
+<pre><code>## [1] 0.9988739</code></pre>
+<pre class="r"><code>2/3 #PPV</code></pre>
+<pre><code>## [1] 0.6666667</code></pre>
+<pre class="r"><code>#density plot of log-odds colored by binary `law` variable
+Guns_data$logit&lt;-predict(fit2,type=&quot;link&quot;)
+
+Guns_data%&gt;%ggplot()+geom_density(aes(logit,color=law,fill=law), alpha=.4)+
+  theme(legend.position=c(.85,.85))+geom_vline(xintercept=0)+xlab(&quot;logit (log-odds)&quot;)+
+  geom_rug(aes(logit,color=law))</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-6-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#ROC Curve 
+ROCplot&lt;-ggplot(Guns_data)+geom_roc(aes(d=law,m=probs), n.cuts=0) 
+ROCplot</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-6-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#AUC
+calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.7039493</code></pre>
+<p>While holding <code>murder</code> and <code>robbery</code> constant, adding 1 unit to <code>violent</code> multiplies odds by a factor of e^0.0016. Holding <code>violent</code> and <code>robbery</code> constant, adding 1 unit to <code>murder</code> multiplies odds by a factor of e^-0.1127. Holding <code>violent</code> and <code>murder</code> constant, adding 1 unit to <code>robbery</code> multiplies odds by a factor of e^-0.0082. Accuracy is the proportion predicted that was actually correctly predicted which is 0.7579. The true positive rate (TPR) is the probability of predicting an observation to have a concealed carry law if they actually have it which in this case is 0.007. True negative rate (TNR) is the probability of predicting an observation to not have a concealed carry law if they actually do not have it which is 0.9989. Precision (PPV) is the proportion predicted as having a concealed carry law that actually have one which is 0.667. The area under curve (AUC) is a quantifiable measurement of how well the model is predicting overall which was calculated to be 0.7039. This AUC value is relatively weak as ideally, we would want it to be 1 which would mean the predictions were completely accurate.</p>
+</div>
+<div id="logistic-regression-model-cont.-10-fold-cv-and-lasso" class="section level3">
+<h3>Logistic Regression Model (cont.), 10-fold CV, and LASSO</h3>
+<p><strong>6. (25 pts)</strong>
+- Fit model, compute in-sample classification diagnostics (Accuracy, Sensitivity, Specificity, Precision, AUC), and interpret (5)
+- Perform 10-fold (or repeated random sub-sampling) CV with the same model and report average out-of-sample classification diagnostics (Accuracy, Sensitivity, Specificity, Precision, and AUC); interpret AUC and compare with the in-sample metrics (10)
+- Perform LASSO on the same model/variables. Choose lambda to give the simplest model whose accuracy is near that of the best (i.e., <code>lambda.1se</code>). Discuss which variables are retained. (5)
+- Perform 10-fold CV using only the variables lasso selected: compare model’s out-of-sample AUC to that of your logistic regressions above (5)</p>
+<pre class="r"><code>Guns_data &lt;- Guns%&gt;%mutate(y=ifelse(law==&quot;yes&quot;,1,0)) %&gt;% select(-year,-state, robbery_c) #removed variable `year` and `state` as they significantly skewed the logistic regression calculations 
+Guns_data$law &lt;- NULL
+
+#logistic regression for all variables 
+fit_all &lt;- glm(y~(.), data=Guns_data, family = &quot;binomial&quot;)
+coeftest(fit_all)</code></pre>
+<pre><code>##
+## z test of coefficients:
+##
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) -1.0861e+01 3.8640e+00 -2.8107 0.0049429 **
+## violent -2.4644e-03 8.4653e-04 -2.9111 0.0036011 **
+## murder -1.5629e-01 5.1368e-02 -3.0425 0.0023461 **
+## robbery 2.5295e-03 2.4252e-03 1.0430 0.2969548
+## prisoners 4.7949e-03 1.0400e-03 4.6105 4.016e-06 ***
+## afam 5.9273e-01 1.2285e-01 4.8249 1.401e-06 ***
+## cauc 3.2651e-01 5.8920e-02 5.5416 2.997e-08 ***
+## male -5.7396e-01 7.8846e-02 -7.2795 3.351e-13 ***
+## population 1.5643e-02 2.3650e-02 0.6614 0.5083476
+## income -2.9293e-04 7.2871e-05 -4.0199 5.824e-05 ***
+## density -2.9891e+00 7.8347e-01 -3.8152 0.0001361 ***
+## robbery_c NA NA NA NA
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#odds scaled coefficients
+coef(fit_all)%&gt;%exp%&gt;%round(5)%&gt;%data.frame</code></pre>
+<pre><code>##                   .
+## (Intercept) 0.00002
+## violent     0.99754
+## murder      0.85531
+## robbery     1.00253
+## prisoners   1.00481
+## afam        1.80892
+## cauc        1.38612
+## male        0.56329
+## population  1.01577
+## income      0.99971
+## density     0.05033
+## robbery_c        NA</code></pre>
+<pre class="r"><code>#function that calculates accuracy, TRP, TNP, PPV, and AUC 
+class_diag &lt;- function(probs,truth){ 
+  #CONFUSION MATRIX 
+  if(is.character(truth)==TRUE) truth&lt;-as.factor(truth) 
+  if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) truth&lt;-as.numeric(truth)-1 
+  tab&lt;-table(factor(probs&gt;.5,levels=c(&quot;FALSE&quot;,&quot;TRUE&quot;)),factor(truth, levels=c(0,1))) 
+  acc=sum(diag(tab))/sum(tab) 
+  sens=tab[2,2]/colSums(tab)[2] 
+  spec=tab[1,1]/colSums(tab)[1] 
+  ppv=tab[2,2]/rowSums(tab)[2] 
+  
+#CALCULATE EXACT AUC 
+  ord&lt;-order(probs, decreasing=TRUE) 
+  probs &lt;- probs[ord]; truth &lt;- truth[ord] 
+  TPR=cumsum(truth)/max(1,sum(truth))  
+  FPR=cumsum(!truth)/max(1,sum(!truth)) 
+  dup &lt;-c(probs[-1]&gt;=probs[-length(probs)], FALSE) 
+  TPR &lt;-c(0,TPR[!dup],1); FPR&lt;-c(0,FPR[!dup],1) 
+  n &lt;- length(TPR) 
+  auc &lt;- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n])) 
+  data.frame(acc,sens,spec,ppv,auc) 
+}
+
+#calculate in-sample classification diagnostics using `class_diag`
+probs_all &lt;- predict(fit_all, type=&quot;response&quot;)
+class_diag(probs_all, Guns_data$y)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.8030691 0.4210526 0.9256757 0.6451613 0.8379248</code></pre>
+<p>The in-sample classification diagnostics produced an accuracy of 0.8031, sensitivity (TPR) of 0.4211, specificity (TNR) of 0.9257, precision (PPV) of 0.6452 and AUC of 0.838. The AUC provides a good overall assessment of the logistic regression model’s performance and since its value of 0.838 is fairly high, this means that the model performed well.</p>
+<pre class="r"><code>#10-fold CV with out-of-sample classification diagnostics 
+set.seed(1234)
+k=10
+
+data &lt;- Guns_data %&gt;% sample_frac #put rows of dataset in random order
+folds &lt;- ntile(1:nrow(data),n=10) #create fold labels
+
+diags&lt;-NULL
+for(i in 1:k){
+  train &lt;- data[folds!=i,] #create training set (all but fold i)
+  test &lt;- data[folds==i,] #create test set (just fold i)
+  truth &lt;- test$y #save truth labels from fold i
+  
+  fit_all2 &lt;- glm(y~(.), data=train, family=&quot;binomial&quot;)
+  probs_all2 &lt;- predict(fit_all2, newdata=test, type=&quot;response&quot;)
+  
+  diags&lt;-rbind(diags,class_diag(probs_all2,truth))
+}
+
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.7996306 0.4248165 0.9208604 0.6280945 0.8348503</code></pre>
+<p>The average out-of-sample classification diagnostics produced an accuracy of 0.7996, sensitivity of 0.4248, specificity of 0.9209, precision of 0.6281, and AUC of 0.8349. The AUC is also fairly high and demonstrates that the model overall performs well as a predictor. The in-sample metrics were very similar to these out-of-sample metrics.</p>
+<pre class="r"><code>#LASSO
+y&lt;-as.matrix(Guns_data$y) #response variable
+x&lt;-model.matrix(y~.,data=Guns_data)[,-1] #predictor variables
+head(x)</code></pre>
+<pre><code>## violent murder robbery prisoners afam cauc male
+population income density
+## 1 414.4 14.2 96.8 83 8.384873 55.12291 18.17441 3.780403
+9563.148 0.0745524
+## 2 419.1 13.3 99.1 94 8.352101 55.14367 17.99408 3.831838
+9932.000 0.0755667
+## 3 413.3 13.2 109.5 144 8.329575 55.13586 17.83934
+3.866248 9877.028 0.0762453
+## 4 448.5 13.2 132.1 141 8.408386 54.91259 17.73420
+3.900368 9541.428 0.0768288
+## 5 470.5 11.9 126.5 149 8.483435 54.92513 17.67372
+3.918531 9548.351 0.0771866
+## 6 447.7 10.6 112.0 183 8.514000 54.89621 17.51052
+3.925229 9478.919 0.0773185
+## robbery_c
+## 1 -65.0202
+## 2 -62.7202
+## 3 -52.3202
+## 4 -29.7202
+## 5 -35.3202
+## 6 -49.8202</code></pre>
+<pre class="r"><code>cv&lt;-cv.glmnet(x,y,family=&quot;binomial&quot;)
+lasso&lt;-glmnet(x,y,family=&quot;binomial&quot;,lambda=cv$lambda.1se)
+coef(lasso)</code></pre>
+<pre><code>## 12 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                        s0
+## (Intercept)  3.368542e+00
+## violent     -2.100207e-03
+## murder       .           
+## robbery     -1.586893e-03
+## prisoners    4.408382e-03
+## afam         .           
+## cauc         6.290400e-02
+## male        -4.434996e-01
+## population  -3.089554e-03
+## income      -9.511202e-05
+## density     -6.559318e-01
+## robbery_c   -4.668875e-04</code></pre>
+<p>Note that each observation is for a specific state at a specific year (ex. Texas in 1978).The variables retained after performing LASSO are violent crime rates (<code>violent</code>), robbery rates (<code>robbery</code>), incarceration rates (<code>prisoners</code>), percent of population within state that is Caucasian (<code>cauc</code>), percent of population within state that is male (<code>male</code>), state population size (<code>population</code>), real per capita personal income for that state (<code>income</code>), and population per square mile (<code>density</code>).</p>
+<pre class="r"><code>#10-fold CV with LASSO selected variables 
+set.seed(1234)
+k=10
+
+data &lt;- Guns_data %&gt;% sample_frac #put rows of dataset in random order
+folds &lt;- ntile(1:nrow(data),n=10) #create fold labels
+
+diags&lt;-NULL
+for(i in 1:k){
+  train &lt;- data[folds!=i,] #create training set (all but fold i)
+  test &lt;- data[folds==i,] #create test set (just fold i)
+  truth &lt;- test$y #save truth labels from fold i
+  
+  fit_all2 &lt;- glm(y~violent+robbery+prisoners+cauc+male+population+income+density, data=train, family=&quot;binomial&quot;)
+  probs_all2 &lt;- predict(fit_all2, newdata=test, type=&quot;response&quot;)
+  
+  diags&lt;-rbind(diags,class_diag(probs_all2,truth))
+}
+
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.7996668 0.4396764 0.9153387 0.6297249 0.8233323</code></pre>
+<p>This out-of-sample AUC is 0.8233 which very similar but slightly lower than the AUC of the above two regressions. All three AUCS are good performance values and thus indicate that each of the three models are good predictors for concealed carry laws (<code>law</code>)</p>
+<p>…</p>
+</div>
+</div>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../../js/docs.min.js"></script>
+<script src="../../js/main.js"></script>
+
+<script src="../../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

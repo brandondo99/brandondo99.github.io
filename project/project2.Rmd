@@ -1,0 +1,348 @@
+---
+title: 'Project 2: Modeling, Testing, and Predicting'
+author: "SDS348"
+date: ''
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,fig.align="center",warning=FALSE,message=FALSE,fig.width=8, fig.height=5, linewidth=60)
+options(tibble.width = 100,width = 100)
+library(tidyverse)
+```
+
+# Modeling
+
+
+ 
+
+### Introduction
+
+**0. (5 pts)**
+I decided to expand upon what I worked on in Project 1 - which measured the relationship between education and crime - by focusing on a dataset that also relates to crime rates within the United States. For this project, I will be analyzing the `Guns` dataset from the `AER` library which looks at various variables related to crime rate, such as violent crime rate (`violent`), murder rate (`murder`), robbery rate (`robbery`), and incarceration rate (`prisoners`). The purpose of the `Guns` dataset is to provide data that can help determine if there is a relationship between having a concealed carry law (`law`) and crime rates. There are 1,173 observations in total with 13 variables, although the variables mentioned previously are the main variables under investigation.
+```{r}
+#load all needed libraries beforehand
+library(tidyverse)
+library(dplyr)
+library(mvtnorm) 
+library(ggExtra)
+library(rstatix)
+library(gridExtra)
+library(AER)
+library(lmtest)
+library(sandwich)
+library(plotROC)
+library(glmnet)
+
+
+data(Guns)
+head(Guns)
+nrow(Guns) #rows of observations within the dataset
+```
+
+
+
+### MANOVA/ANOVA Testing
+
+**1. (15 pts)** 
+
+```{r}
+#first, check MANOVA assumptions
+group <- Guns$law
+DVs <- Guns %>% select(violent, murder, robbery, prisoners)
+
+#testing for multivariate normality for each group
+sapply(split(DVs,group), mshapiro_test) #normality assumption was not met 
+
+#testing homogeneity of covariances 
+box_m(DVs, group) #covariance assumption was not met 
+
+#MANOVA test
+mano <- manova(cbind(violent, murder, robbery, prisoners)~law, data=Guns)
+summary(mano)
+
+#univariate ANOVA tests 
+summary.aov(mano)
+
+#pairwise t.tests
+pairwise.t.test(Guns$violent, Guns$law, p.adj = "none")
+pairwise.t.test(Guns$murder, Guns$law, p.adj = "none")
+pairwise.t.test(Guns$robbery, Guns$law, p.adj = "none")
+pairwise.t.test(Guns$prisoners, Guns$law, p.adj = "none")
+
+#probability of at least one type I error 
+1-0.95^9
+
+#Bonferroni corrections 
+0.05/9
+```
+The probability of at least one type I error is 0.370. When adjusted using Bonferroni corrections, the modified significance level is 0.0056 which will be used as the significance level that all tests conducted will be compared to. Prior to the MANOVA test being conducted, the MANOVA assumptions were tested and were not met. Regardless, a MANOVA test was conducted. For the MANOVA test, since the p-value is less than 0.0056, this means that the null hypothesis is rejected and there is at least one difference in mean for `law` for at least one DV. For the ANOVA tests, `violent`, `murder` and `robbery` all had a difference in mean between observations that had concealed carry laws and those that did not. The pairwise t-tests confirmed this as `violent`, `murder` and `robbery` each compared with `law` all had p-values less than 0.0056. There was 1 MANOVA, 4 ANOVA, and 4 t-tests conducted which adds to 9 tests in total.  
+
+
+
+
+### Randomization Testing 
+
+**2. (10 pts)** 
+```{r}
+#Randomization test using mean difference of violent crime rates between observations with and without concealed carry laws  
+Guns%>%group_by(law)%>%
+  summarize(means=mean(violent))%>%summarize(`mean_diff`=diff(means)) #true mean difference 
+
+#simulating permutations for randomization test 
+rand_dist<-vector()
+for(i in 1:5000){
+new<-data.frame(violent=sample(Guns$violent),law=Guns$law)
+rand_dist[i]<-mean(new[new$law=="yes",]$violent)-
+mean(new[new$law=="no",]$violent)}
+
+
+{hist(rand_dist,main="",ylab=""); abline(v = c(-161.1868, 161.1868),col="red")} #cannot see the absolute lines since there are no observations that far out 
+
+#p-value for mean difference
+mean(rand_dist < -161.1868 | rand_dist > 161.1868) #p-value is essentially zero
+
+```
+The null hypothesis is that the mean of violent crime rate is the same between observations without and with concealed carry laws. The alternative hypothesis is that the mean of violent crime rate is not the same between observations without and with concealed carry laws. A randomization test with mean differences was performed to assess these hypotheses. Based on the domain of the histogram and how the p-value is less than 0.05, this suggests that the null hypothesis is rejected. 
+
+
+
+### Linear Regression Model and Robust SEs
+
+**3. (40 pts)** 
+
+```{r}
+#mean-centering of numeric variable
+Guns$robbery_c<-Guns$robbery-mean(Guns$robbery)
+
+#linear regression model predicting incarceration rate `prisoners` from robbery rate and concealed gun law status 
+fit<-lm(prisoners ~ robbery_c * law, data=Guns)
+fit
+
+#ggplot() of regression 
+ggplot(Guns, aes(robbery_c, prisoners, color = law)) + geom_smooth(method = "lm", se = F, fullrange = T, aes(color = law)) + 
+  geom_point()+geom_vline(xintercept=0,lty=2)
+
+#R-squared/proportion of variation in outcome explained by model
+summary(fit)
+
+#checking assumptions 
+bptest(fit) #H0 = homoskedastic 
+
+resids<-fit$residuals
+shapiro.test(resids) #H0 = true distribution is normal
+
+#robust standard errors comparison
+summary(fit)$coef[,1:2] #uncorrected standard errors
+coeftest(fit, vcov = vcovHC(fit))[,1:2] #corrected robust standard errors 
+
+```
+Assuming no concealed carry `law` is enforced, there is a 0.61 increase in incarceration `prisoner` rate per 100,000 residents for every 1-unit increase in robbery rate on average. For observations of average robbery rate, there is a 96.7130 increase in incarceration `prisoner` rate per 100,000 residents for observations with concealed carry `law` than those without. The slope for `robbery` rate on incarceration `prisoner` rate is 0.4399 higher for observations with concealed carry `law` compared to observations without concealed carry `law`. 
+
+The proportion of variation in `prisoner` explained by the model is 0.3596 or 0.358 with an adjusted R squared. Assumptions of linearity, normality and homoskedasticity were not met according to the hypothesis test conducted. Since the assumption of homoskedasticity was not met, the standard errors should be made robust to correct for violations of homoskedasticity. The robust SEs are slightly larger than the uncorrected standard errors for all three coefficients. 
+
+
+
+
+### Bootstrapping
+
+**4. (5 pts)** 
+
+```{r}
+fit<-lm(prisoners ~ robbery_c * law, data=Guns) 
+
+#bootstrap residuals 
+resids<-fit$residuals 
+fitted<-fit$fitted.values 
+
+#resample residuals with replacement
+resid_resamp<-replicate(5000,{
+new_resids<-sample(resids,replace=TRUE) 
+Guns$new_y<-fitted+new_resids 
+fit<-lm(new_y~robbery_c*law,data=Guns) 
+coef(fit) 
+})
+
+#estimated bootstrapped standard errors 
+resid_resamp%>%t%>%as.data.frame%>%summarize_all(sd)
+```
+The difference between the original, robust and bootstrapped SEs is fairly small and within decimal range of one another. 
+
+
+
+### Logistic Regression Model
+
+**5. (30 pts)** 
+```{r}
+#create binary variable from `law`
+Guns_data <- Guns%>%mutate(y=ifelse(law=="yes",1,0))
+
+#logistic regression
+fit2<-glm(y~violent+murder+robbery, data=Guns_data, family="binomial")
+coeftest(fit2)
+
+#odds scaled coefficients
+coef(fit2)%>%exp%>%round(5)%>%data.frame
+
+#confusion matrix for the logistic regression
+probs<-predict(fit2,type="response")
+table(predict=as.numeric(probs>.5),truth=Guns_data$y)%>%addmargins
+
+(887+2)/1173 #accuracy
+2/285 #TPR
+887/888 #TNR
+2/3 #PPV
+
+#density plot of log-odds colored by binary `law` variable
+Guns_data$logit<-predict(fit2,type="link")
+
+Guns_data%>%ggplot()+geom_density(aes(logit,color=law,fill=law), alpha=.4)+
+  theme(legend.position=c(.85,.85))+geom_vline(xintercept=0)+xlab("logit (log-odds)")+
+  geom_rug(aes(logit,color=law))
+
+#ROC Curve 
+ROCplot<-ggplot(Guns_data)+geom_roc(aes(d=law,m=probs), n.cuts=0) 
+ROCplot
+
+#AUC
+calc_auc(ROCplot)
+
+```
+While holding `murder` and `robbery` constant, adding 1 unit to `violent` multiplies odds by a factor of e^0.0016. Holding `violent` and `robbery` constant, adding 1 unit to `murder` multiplies odds by a factor of e^-0.1127. Holding `violent` and `murder` constant, adding 1 unit to `robbery` multiplies odds by a factor of e^-0.0082. Accuracy is the proportion predicted that was actually correctly predicted which is 0.7579. The true positive rate (TPR) is the probability of predicting an observation to have a concealed carry law if they actually have it which in this case is 0.007. True negative rate (TNR) is the probability of predicting an observation to not have a concealed carry law if they actually do not have it which is 0.9989. Precision (PPV) is the proportion predicted as having a concealed carry law that actually have one which is 0.667. The area under curve (AUC) is a quantifiable measurement of how well the model is predicting overall which was calculated to be 0.7039. This AUC value is relatively weak as ideally, we would want it to be 1 which would mean the predictions were completely accurate.    
+
+
+
+### Logistic Regression Model (cont.), 10-fold CV, and LASSO
+
+**6. (25 pts)** 
+    - Fit model, compute in-sample classification diagnostics (Accuracy, Sensitivity, Specificity, Precision, AUC), and interpret (5)
+    - Perform 10-fold (or repeated random sub-sampling) CV with the same model and report average out-of-sample classification diagnostics (Accuracy, Sensitivity, Specificity, Precision, and AUC); interpret AUC and compare with the in-sample metrics (10)
+    - Perform LASSO on the same model/variables. Choose lambda to give the simplest model whose accuracy is near that of the best (i.e., `lambda.1se`). Discuss which variables are retained. (5)
+    - Perform 10-fold CV using only the variables lasso selected: compare model's out-of-sample AUC to that of your logistic regressions above (5)
+    
+```{r}
+Guns_data <- Guns%>%mutate(y=ifelse(law=="yes",1,0)) %>% select(-year,-state, robbery_c) #removed variable `year` and `state` as they significantly skewed the logistic regression calculations 
+Guns_data$law <- NULL
+
+#logistic regression for all variables 
+fit_all <- glm(y~(.), data=Guns_data, family = "binomial")
+coeftest(fit_all)
+
+#odds scaled coefficients
+coef(fit_all)%>%exp%>%round(5)%>%data.frame
+```
+
+```{r}
+#function that calculates accuracy, TRP, TNP, PPV, and AUC 
+class_diag <- function(probs,truth){ 
+  #CONFUSION MATRIX 
+  if(is.character(truth)==TRUE) truth<-as.factor(truth) 
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1 
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),factor(truth, levels=c(0,1))) 
+  acc=sum(diag(tab))/sum(tab) 
+  sens=tab[2,2]/colSums(tab)[2] 
+  spec=tab[1,1]/colSums(tab)[1] 
+  ppv=tab[2,2]/rowSums(tab)[2] 
+  
+#CALCULATE EXACT AUC 
+  ord<-order(probs, decreasing=TRUE) 
+  probs <- probs[ord]; truth <- truth[ord] 
+  TPR=cumsum(truth)/max(1,sum(truth))  
+  FPR=cumsum(!truth)/max(1,sum(!truth)) 
+  dup <-c(probs[-1]>=probs[-length(probs)], FALSE) 
+  TPR <-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1) 
+  n <- length(TPR) 
+  auc <- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n])) 
+  data.frame(acc,sens,spec,ppv,auc) 
+}
+
+#calculate in-sample classification diagnostics using `class_diag`
+probs_all <- predict(fit_all, type="response")
+class_diag(probs_all, Guns_data$y)
+```
+The in-sample classification diagnostics produced an accuracy of 0.8031, sensitivity (TPR) of 0.4211, specificity (TNR) of 0.9257, precision (PPV) of 0.6452 and AUC of 0.838. The AUC provides a good overall assessment of the logistic regression model's performance and since its value of 0.838 is fairly high, this means that the model performed well. 
+
+```{r}
+#10-fold CV with out-of-sample classification diagnostics 
+set.seed(1234)
+k=10
+
+data <- Guns_data %>% sample_frac #put rows of dataset in random order
+folds <- ntile(1:nrow(data),n=10) #create fold labels
+
+diags<-NULL
+for(i in 1:k){
+  train <- data[folds!=i,] #create training set (all but fold i)
+  test <- data[folds==i,] #create test set (just fold i)
+  truth <- test$y #save truth labels from fold i
+  
+  fit_all2 <- glm(y~(.), data=train, family="binomial")
+  probs_all2 <- predict(fit_all2, newdata=test, type="response")
+  
+  diags<-rbind(diags,class_diag(probs_all2,truth))
+}
+
+summarize_all(diags,mean)
+
+```
+The average out-of-sample classification diagnostics produced an accuracy of 0.7996, sensitivity of 0.4248, specificity of 0.9209, precision of 0.6281, and AUC of 0.8349. The AUC is also fairly high and demonstrates that the model overall performs well as a predictor. The in-sample metrics were very similar to these out-of-sample metrics.  
+
+```{r}
+#LASSO
+y<-as.matrix(Guns_data$y) #response variable
+x<-model.matrix(y~.,data=Guns_data)[,-1] #predictor variables
+head(x)
+
+cv<-cv.glmnet(x,y,family="binomial")
+lasso<-glmnet(x,y,family="binomial",lambda=cv$lambda.1se)
+coef(lasso)
+```
+Note that each observation is for a specific state at a specific year (ex. Texas in 1978).The variables retained after performing LASSO are violent crime rates (`violent`), robbery rates (`robbery`), incarceration rates (`prisoners`), percent of population within state that is Caucasian (`cauc`), percent of population within state that is male (`male`), state population size (`population`), real per capita personal income for that state (`income`), and population per square mile (`density`).
+```{r}
+#10-fold CV with LASSO selected variables 
+set.seed(1234)
+k=10
+
+data <- Guns_data %>% sample_frac #put rows of dataset in random order
+folds <- ntile(1:nrow(data),n=10) #create fold labels
+
+diags<-NULL
+for(i in 1:k){
+  train <- data[folds!=i,] #create training set (all but fold i)
+  test <- data[folds==i,] #create test set (just fold i)
+  truth <- test$y #save truth labels from fold i
+  
+  fit_all2 <- glm(y~violent+robbery+prisoners+cauc+male+population+income+density, data=train, family="binomial")
+  probs_all2 <- predict(fit_all2, newdata=test, type="response")
+  
+  diags<-rbind(diags,class_diag(probs_all2,truth))
+}
+
+summarize_all(diags,mean)
+```
+This out-of-sample AUC is 0.8233 which very similar but slightly lower than the AUC of the above two regressions. All three AUCS are good performance values and thus indicate that each of the three models are good predictors for concealed carry laws (`law`) 
+
+...
+
+
+
+
+
