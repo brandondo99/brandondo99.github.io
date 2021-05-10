@@ -8,12 +8,13 @@
     <language>en-US</language>
     <lastBuildDate>Sun, 09 May 2021 00:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Using R and Python </title>
+      <title>Python &amp; R &amp; Reticulation, Oh My!</title>
       <link>/post/2021/05/09/using-r-and-python/</link>
       <pubDate>Sun, 09 May 2021 00:00:00 +0000</pubDate>
       
       <guid>/post/2021/05/09/using-r-and-python/</guid>
-      <description></description>
+      <description>Python is one of the most commonly used coding languages within the modern era of computer science and statistical analysis. It is easy to use, efficient, and possesses a wide range of customization for the user to explore. For example, the package NumPyprovides methods to manipulate arrays and matrices mathematically.
+import numpy as np #load the library NumPy and store as `np` x = np.array([[2,4],[6,8]]) # `np.array` is a specific method within the `np` package that creates an array x ## array([[2, 4], ## [6, 8]]) print(np.</description>
     </item>
     
     <item>

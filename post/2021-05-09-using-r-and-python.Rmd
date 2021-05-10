@@ -1,5 +1,5 @@
 ---
-title: 'Using R and Python '
+title: 'Python & R & Reticulation, Oh My!'
 author: ''
 date: '2021-05-09'
 slug: using-r-and-python
@@ -7,3 +7,37 @@ categories: []
 tags: []
 description: ''
 ---
+
+Python is one of the most commonly used coding languages within the modern era of computer science and statistical analysis. It is easy to use, efficient, and possesses a wide range of customization for the user to explore. For example, the package `NumPy`provides methods to manipulate arrays and matrices mathematically.   
+
+```{python}
+import numpy as np #load the library NumPy and store as `np`
+
+x = np.array([[2,4],[6,8]]) # `np.array` is a specific method within the `np` package that creates an array 
+
+x
+
+print(np.sum(x)) #sum elements of array `x` together
+```
+
+This language contrasts with another popular language called R. R is most known as a coding language that applies well to statistical analysis. For the same process above, this is what it would like in R.
+
+```{r}
+v1 <- c(2,4) #create two vectors separately
+v2 <- c(6,8)
+y <- cbind(v1,v2) #bind the vectors together 
+
+y
+
+print(sum(y)) #sum elements of array `y` together
+```
+Notice that both accomplish the same goal but in different ways. There are advantages and disadvantages to using either coding language at any given time. However, reticulation allows the user to use data from both languages at once! 
+
+```{python}
+np.dot(x, r.y).round() #calculates the dot product of array `x` that was coded in python and array `y` that was coded in R 
+```
+Reticulation provides greater possibility and flexibility when coding since both languages can be used for the same project. Below is a diagram from Data Flair that demonstrates the unique benefits that R and Python have. 
+
+![](/post/2021-05-09-using-r-and-python_files/Screenshot 2021-05-09 205050.png)
+
+The beauty of computer science and coding is that there really is no limit to what algorithms or crazy calculations can be created! 

@@ -7,7 +7,7 @@
     <meta name="author" content="Brandon Do" />
     
     <link rel="shortcut icon" type="image/x-icon" href="../../../../../img/favicon.ico">
-    <title>Using R and Python </title>
+    <title>Python &amp; R &amp; Reticulation, Oh My!</title>
     <meta name="generator" content="Hugo 0.83.1" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="../../../../../css/main.css" />
@@ -54,7 +54,7 @@
       <div class="container">
         <div class="blog-post">
           <h3>
-            <strong><a href="../../../../../post/2021/05/09/using-r-and-python/">Using R and Python </a></strong>
+            <strong><a href="../../../../../post/2021/05/09/using-r-and-python/">Python &amp; R &amp; Reticulation, Oh My!</a></strong>
           </h3>
         </div>
  
@@ -72,7 +72,34 @@
               
 
 
+<p>Python is one of the most commonly used coding languages within the modern era of computer science and statistical analysis. It is easy to use, efficient, and possesses a wide range of customization for the user to explore. For example, the package <code>NumPy</code>provides methods to manipulate arrays and matrices mathematically.</p>
+<pre class="python"><code>import numpy as np #load the library NumPy and store as `np`
 
+x = np.array([[2,4],[6,8]]) # `np.array` is a specific method within the `np` package that creates an array 
+
+x</code></pre>
+<pre><code>## array([[2, 4],
+##        [6, 8]])</code></pre>
+<pre class="python"><code>print(np.sum(x)) #sum elements of array `x` together</code></pre>
+<pre><code>## 20</code></pre>
+<p>This language contrasts with another popular language called R. R is most known as a coding language that applies well to statistical analysis. For the same process above, this is what it would like in R.</p>
+<pre class="r"><code>v1 &lt;- c(2,4) #create two vectors separately
+v2 &lt;- c(6,8)
+y &lt;- cbind(v1,v2) #bind the vectors together 
+
+y</code></pre>
+<pre><code>##      v1 v2
+## [1,]  2  6
+## [2,]  4  8</code></pre>
+<pre class="r"><code>print(sum(y)) #sum elements of array `y` together</code></pre>
+<pre><code>## [1] 20</code></pre>
+<p>Notice that both accomplish the same goal but in different ways. There are advantages and disadvantages to using either coding language at any given time. However, reticulation allows the user to use data from both languages at once!</p>
+<pre class="python"><code>np.dot(x, r.y).round() #calculates the dot product of array `x` that was coded in python and array `y` that was coded in R </code></pre>
+<pre><code>## array([[ 20.,  44.],
+##        [ 44., 100.]])</code></pre>
+<p>Reticulation provides greater possibility and flexibility when coding since both languages can be used for the same project. Below is a diagram from Data Flair that demonstrates the unique benefits that R and Python have.</p>
+<p><img src="../../../../../post/2021-05-09-using-r-and-python_files/Screenshot%202021-05-09%20205050.png" /></p>
+<p>The beauty of computer science and coding is that there really is no limit to what algorithms or crazy calculations can be created!</p>
 
             
         <hr>         <div class="related-posts">
